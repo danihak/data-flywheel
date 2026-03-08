@@ -306,20 +306,38 @@ st.markdown(
 
 
 # ──────────────────────────────────────────────
-# Sidebar: API Key + Stats
+# API Key: Secrets first, then sidebar fallback
 # ──────────────────────────────────────────────
+api_key = None
+
+# 1. Try Streamlit secrets (deployed mode)
+try:
+    api_key = st.secrets["ANTHROPIC_API_KEY"]
+except (KeyError, FileNotFoundError):
+    pass
+
+# 2. Try session state (user already entered it this session)
+if not api_key and "api_key" in st.session_state:
+    api_key = st.session_state.api_key
+
+# Sidebar: stats + optional manual key
 with st.sidebar:
     st.markdown("### ⚙️ Configuration")
-    api_key = st.text_input(
-        "Anthropic API Key",
-        type="password",
-        placeholder="sk-ant-...",
-        help="Your key is used only for classification and never stored.",
-    )
-    if api_key:
-        st.session_state.api_key = api_key
-    elif "api_key" in st.session_state:
-        api_key = st.session_state.api_key
+    if not api_key:
+        manual_key = st.text_input(
+            "Anthropic API Key (optional)",
+            type="password",
+            placeholder="sk-ant-...",
+            help="The app uses a built-in key. Enter yours here to override.",
+        )
+        if manual_key:
+            api_key = manual_key
+            st.session_state.api_key = manual_key
+    else:
+        st.markdown(
+            '<p style="font-size:12px; color:#0D7C3A;">✓ API connected</p>',
+            unsafe_allow_html=True,
+        )
     st.markdown("---")
     if st.session_state.history:
         total = len(st.session_state.history)
@@ -342,31 +360,12 @@ with st.sidebar:
 
 
 # ──────────────────────────────────────────────
-# API Key (main page if not set)
+# API Key prompt on main page (only if no key found)
 # ──────────────────────────────────────────────
 if not api_key:
     st.markdown("")
-    key_col1, key_col2 = st.columns([2, 1])
-    with key_col1:
-        main_api_key = st.text_input(
-            "Enter your Anthropic API Key to start",
-            type="password",
-            placeholder="sk-ant-...",
-            key="main_api_key",
-        )
-        if main_api_key:
-            api_key = main_api_key
-            st.session_state.api_key = main_api_key
-            st.rerun()
-    with key_col2:
-        st.markdown("")
-        st.markdown("")
-        st.markdown(
-            '<p style="font-size:11px; color:#9C9888; line-height:1.5;">'
-            'Get a key at <a href="https://console.anthropic.com/" target="_blank">console.anthropic.com</a>. '
-            'Your key is never stored.</p>',
-            unsafe_allow_html=True,
-        )
+    st.warning("⚠️ No API key configured. Enter your Anthropic API key in the sidebar to start, or ask the admin to add it to Streamlit Secrets.")
+    st.stop()
 
 
 # ──────────────────────────────────────────────
@@ -379,13 +378,13 @@ if "sample_text" not in st.session_state:
 input_text = st.text_area(
     "Simulate a user interaction",
     value=st.session_state.sample_text,
-    placeholder="Type in any Indian language — Hindi, Tamil, Odia, Hinglish, Bengali, Kannada...",
+    placeholder="Type in any Indian language — Hindi, Tamil, Odia, Hinglish, Bengali, Kannada, or even cuss words...",
     height=68,
     label_visibility="collapsed",
 )
 
 # Sample inputs
-st.markdown('<p style="font-size:11px; color:#9C9888; margin-bottom:4px;">Try a sample:</p>', unsafe_allow_html=True)
+st.markdown('<p style="font-size:11px; color:#9C9888; margin-bottom:4px;">Try a sample, or type anything:</p>', unsafe_allow_html=True)
 sample_cols = st.columns(5)
 for i, sample in enumerate(SAMPLE_INPUTS):
     col = sample_cols[i % 5]
@@ -401,7 +400,7 @@ with col_btn:
     process_clicked = st.button(
         "🔄 Process Through Pipeline",
         type="primary",
-        disabled=not api_key or not input_text,
+        disabled=not input_text,
         use_container_width=True,
     )
 
@@ -409,7 +408,7 @@ with col_btn:
 # ──────────────────────────────────────────────
 # Pipeline Processing
 # ──────────────────────────────────────────────
-if process_clicked and input_text and api_key:
+if process_clicked and input_text:
     st.session_state.pipeline_complete = False
     st.session_state.results = None
 
