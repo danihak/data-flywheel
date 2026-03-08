@@ -67,5 +67,4 @@ Includes simulated coverage data across all 22 scheduled Indian languages and 4 
 ## Author
 
 **Danish Ali Hakim**
-Technical Solutions Manager, Digital India Bhashini Division (DIBD), MeitY
 [LinkedIn](https://linkedin.com/in/danishalihakim) · [GitHub](https://github.com/danihak) · dani.hakimsaif@gmail.com
