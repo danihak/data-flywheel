@@ -316,6 +316,10 @@ with st.sidebar:
         placeholder="sk-ant-...",
         help="Your key is used only for classification and never stored.",
     )
+    if api_key:
+        st.session_state.api_key = api_key
+    elif "api_key" in st.session_state:
+        api_key = st.session_state.api_key
     st.markdown("---")
     if st.session_state.history:
         total = len(st.session_state.history)
@@ -338,10 +342,43 @@ with st.sidebar:
 
 
 # ──────────────────────────────────────────────
+# API Key (main page if not set)
+# ──────────────────────────────────────────────
+if not api_key:
+    st.markdown("")
+    key_col1, key_col2 = st.columns([2, 1])
+    with key_col1:
+        main_api_key = st.text_input(
+            "Enter your Anthropic API Key to start",
+            type="password",
+            placeholder="sk-ant-...",
+            key="main_api_key",
+        )
+        if main_api_key:
+            api_key = main_api_key
+            st.session_state.api_key = main_api_key
+            st.rerun()
+    with key_col2:
+        st.markdown("")
+        st.markdown("")
+        st.markdown(
+            '<p style="font-size:11px; color:#9C9888; line-height:1.5;">'
+            'Get a key at <a href="https://console.anthropic.com/" target="_blank">console.anthropic.com</a>. '
+            'Your key is never stored.</p>',
+            unsafe_allow_html=True,
+        )
+
+
+# ──────────────────────────────────────────────
 # Input Section
 # ──────────────────────────────────────────────
+# Initialize sample state
+if "sample_text" not in st.session_state:
+    st.session_state.sample_text = ""
+
 input_text = st.text_area(
     "Simulate a user interaction",
+    value=st.session_state.sample_text,
     placeholder="Type in any Indian language — Hindi, Tamil, Odia, Hinglish, Bengali, Kannada...",
     height=68,
     label_visibility="collapsed",
@@ -350,14 +387,13 @@ input_text = st.text_area(
 # Sample inputs
 st.markdown('<p style="font-size:11px; color:#9C9888; margin-bottom:4px;">Try a sample:</p>', unsafe_allow_html=True)
 sample_cols = st.columns(5)
-selected_sample = None
 for i, sample in enumerate(SAMPLE_INPUTS):
     col = sample_cols[i % 5]
     if col.button(sample["label"], key=f"sample_{i}", use_container_width=True):
-        selected_sample = sample["text"]
-
-if selected_sample:
-    input_text = selected_sample
+        st.session_state.sample_text = sample["text"]
+        st.session_state.pipeline_complete = False
+        st.session_state.results = None
+        st.rerun()
 
 # Process button
 col_btn, col_space = st.columns([1, 3])
